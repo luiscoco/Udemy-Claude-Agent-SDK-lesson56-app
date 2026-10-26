@@ -113,6 +113,10 @@ $("run").onclick = async () => {
           draw();
         }
         if (e.type === "result") {
+          if (e.result.structured_output) {
+            text += "\n\n```json\n" + JSON.stringify(e.result.structured_output, null, 2) + "\n```\n";
+            renderMarkdown($("conversation"), text);
+          }
           (data.results ||= []).push(e.result);
           json("native-result", e.result);
           draw();
