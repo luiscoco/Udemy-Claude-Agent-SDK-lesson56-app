@@ -1,0 +1,100 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Agent SDK LESSON 56 · Architecture and &lt;em&gt;UML workflow.&lt;/em&gt;</title><link rel="stylesheet" href="/style.css"><link rel="stylesheet" href="/code-highlighting.css"></head><body><main><div class="brand"><a href="/">How <span>Claude Agent SDK</span> Works</a><span class="badge">LESSON 56 / TESTING & EVALS</span></div><header class="hero"><div><div class="eyebrow">FIXTURES · GRADERS · REPORTS</div><h1>Architecture and <em>UML workflow.</em></h1><p class="lead">Every one of the thirteen steps includes matching coloured source code.</p></div><img src="/astronaut.png" alt="Course astronaut mascot"></header><nav class="nav" aria-label="Application sections"><a href="/">Application lab</a><a href="/learn.html">What you will learn</a><a href="/run.html">How to run</a><a href="/architecture.html" aria-current="page">Architecture & workflow</a><a href="/walkthrough.html">Code walkthrough</a><button id="theme" type="button">Dark mode</button></nav><p class="note">The harness loops over cases and repetitions. Each query uses a fresh fixture. Deterministic graders check structured facts and trusted tests; the report determines the actual worker exit. These are logical participants inside the local app, not separately deployed services.</p><a class="button" href="/architecture.svg" download>Download UML SVG</a><div class="diagram"><img src="/architecture.svg" alt="Thirteen-step evaluation harness sequence"></div><section class="step workflow-step" id="workflow-step-01"><span class="number">01</span><h3>1. Choose a bounded experiment</h3><p>Validate a fixed mode. Browser input cannot supply shell commands, filesystem paths, prompts or unlimited repetition counts.</p><p class="source">Source: src/protocol.ts · lines 16–22 · selected source; surrounding code omitted</p><pre><code class="language-typescript">if (
+    !value ||
+    Object.keys(value).some((k) =&gt; k !== &quot;mode&quot;) ||
+    !MODES.includes(value.mode)
+  )
+    throw new Error(&quot;Choose a listed evaluation experiment.&quot;);
+  return { mode: value.mode };</code></pre></section><section class="step workflow-step" id="workflow-step-02"><span class="number">02</span><h3>2. Declare cases and expected outcomes</h3><p>A case owns its prompt, grading kind, expected values and edit policy. Wrongexpected is a labelled negative control; its intentionally bad expectation is not a model hallucination.</p><p class="source">Source: src/cases.ts · lines 13–21 · selected source; surrounding code omitted</p><pre><code class="language-typescript">export const CASES: Record&lt;
+  CaseId,
+  {
+    prompt: string;
+    expectedCount?: number;
+    grade: &quot;wiring&quot; | &quot;json&quot; | &quot;tests&quot;;
+    edit: boolean;
+  }
+&gt; = {</code></pre></section><section class="step workflow-step" id="workflow-step-03"><span class="number">03</span><h3>3. Plan independent repetitions</h3><p>Repeated runs the same JSON case three times. Suite covers three different cases; Gate deliberately includes a failing outcome. One observed success is not a reliability claim.</p><p class="source">Source: src/cases.ts · lines 61–68 · selected source; surrounding code omitted</p><pre><code class="language-typescript">export function plan(mode: Mode): CaseId[] {
+  if (mode === &quot;repeated&quot;) return [&quot;structured&quot;, &quot;structured&quot;, &quot;structured&quot;];
+  if (mode === &quot;suite&quot;) return [&quot;integration&quot;, &quot;structured&quot;, &quot;fix&quot;];
+  if (mode === &quot;gate&quot;) return [&quot;integration&quot;, &quot;unchanged&quot;];
+  return [mode];
+}</code></pre></section><section class="step workflow-step" id="workflow-step-04"><span class="number">04</span><h3>4. Copy a fresh versioned fixture</h3><p>Copy the trusted fixture for every run and isolate the SDK home and config. Empty settings and temporary paths reduce shared state; they are not operating-system isolation or deterministic inference.</p><p class="source">Source: src/workspace.ts · lines 36–42 · selected source; surrounding code omitted</p><pre><code class="language-typescript">await cp(
+    fileURLToPath(new URL(&quot;../fixtures/buggy-utils/&quot;, import.meta.url)),
+    cwd,
+    { recursive: true },
+  );
+  await mkdir(home);
+  await mkdir(config);</code></pre></section><section class="step workflow-step" id="workflow-step-05"><span class="number">05</span><h3>5. Configure the real SDK evaluation</h3><p>Use the selected model, empty setting sources, explicit tools, dontAsk and finite limits. The model is fixed within a suite. Fixture graders execute locally, separately from the model.</p><p class="source">Source: src/runner.ts · lines 32–41 · selected source; surrounding code omitted</p><pre><code class="language-typescript">const options: Options = {
+    cwd: w.cwd,
+    model,
+    env: privateEnv(w),
+    settingSources: [],
+    plugins: [],
+    skills: [],
+    mcpServers: {},
+    strictMcpConfig: true,
+    persistSession: false,</code></pre></section><section class="step workflow-step" id="workflow-step-06"><span class="number">06</span><h3>6. Constrain reads and exact edits</h3><p>Resolve real paths before allowing known fixture reads. Fix mode admits only the reviewed average-empty-input change. The agent has no Bash or Write tool.</p><p class="source">Source: src/policy.ts · lines 14–23 · selected source; surrounding code omitted</p><pre><code class="language-typescript">const base = realpathSync.native(cwd),
+      target = realpathSync.native(resolve(base, input.file_path));
+    const file = relative(base, target).replaceAll(&quot;\\&quot;, &quot;/&quot;);
+    if (isAbsolute(file) || file.startsWith(&quot;..&quot;) || !NAMES.includes(file))
+      return false;
+    if (name === &quot;Read&quot;) return true;
+    if (!edit || file !== &quot;src/utils.js&quot;) return false;
+    const before = input.old_string,
+      after = input.new_string;
+    return (</code></pre></section><section class="step workflow-step" id="workflow-step-07"><span class="number">07</span><h3>7. Collect actual native results</h3><p>Consume the actual SDK stream and preserve its terminal result, requested tools and formatted text. A limit result remains a failure, even if a partial answer exists.</p><p class="source">Source: src/runner.ts · lines 104–113 · selected source; surrounding code omitted</p><pre><code class="language-typescript">const run = query({ prompt: c.prompt, options });
+  try {
+    for await (const m of run) {
+      if (m.type === &quot;assistant&quot;)
+        for (const block of m.message.content) {
+          if (block.type === &quot;tool_use&quot;) {
+            const tool = { name: block.name, id: block.id, input: block.input };
+            tools.push(tool);
+            observe(&quot;native-tool&quot;, tool);
+          }</code></pre></section><section class="step workflow-step" id="workflow-step-08"><span class="number">08</span><h3>8. Run independent trusted tests</h3><p>Verify fixture contents first, remove the API key from the host test environment, then execute actual Node tests. Unchanged preserves the bug and must fail this outcome check.</p><p class="source">Source: src/runner.ts · lines 133–142 · selected source; surrounding code omitted</p><pre><code class="language-typescript">if (c.grade === &quot;tests&quot; &amp;&amp; fixturesValid) {
+      const env = privateEnv(w);
+      delete env.ANTHROPIC_API_KEY;
+      tests = await runProcess(
+        process.execPath,
+        [&quot;--test&quot;, &quot;tests/utils.test.mjs&quot;],
+        { cwd: w.cwd, env, signal: controller.signal },
+      );
+      observe(&quot;host-verification&quot;, {
+        caseId: id,</code></pre></section><section class="step workflow-step" id="workflow-step-09"><span class="number">09</span><h3>9. Grade output facts, not prose</h3><p>Parse the native structured_output with Zod, then compare project and count to the case expectation. Valid JSON shape is separate from factual correctness. Never grade by exact answer wording.</p><p class="source">Source: src/grader.ts · lines 27–35 · selected source; surrounding code omitted</p><pre><code class="language-typescript">const parsed = Answer.safeParse(e.structured);
+    if (!parsed.success)
+      return { pass: false, why: &quot;Structured output missing or shape invalid&quot; };
+    const pass =
+      parsed.data.project === &quot;EVAL56&quot; &amp;&amp; parsed.data.count === c.expectedCount;
+    return {
+      pass,
+      why: `Expected project EVAL56 and count ${c.expectedCount}; received ${parsed.data.project} and ${parsed.data.count}`,
+    };</code></pre></section><section class="step workflow-step" id="workflow-step-10"><span class="number">10</span><h3>10. Retain each completed run</h3><p>Append the actual graded record to JSONL immediately. Reports retain model, SDK, fixture and prompt provenance. Partial suites cannot pass the final gate.</p><p class="source">Source: src/job.ts · lines 25–32 · selected source; surrounding code omitted</p><pre><code class="language-typescript">const run = await runCase(caseId, emit, controller);
+    runs.push(run);
+    await appendFile(
+      join(directory, &quot;runs.jsonl&quot;),
+      redact(JSON.stringify(run)) + &quot;\n&quot;,
+      &quot;utf8&quot;,
+    );
+  }</code></pre></section><section class="step workflow-step" id="workflow-step-11"><span class="number">11</span><h3>11. Aggregate rates, cost and turns</h3><p>Compute measured averages from native result fields and retain measurement coverage. Missing metrics remain unknown. Wilson intervals show the uncertainty of tiny repeated samples.</p><p class="source">Source: src/report.ts · lines 17–26 · selected source; surrounding code omitted</p><pre><code class="language-typescript">const costs = measured(&quot;total_cost_usd&quot;),
+      turns = measured(&quot;num_turns&quot;);
+    return {
+      caseId: id,
+      runs: n,
+      passed,
+      passRate: p,
+      wilson95: [Math.max(0, center - spread), Math.min(1, center + spread)],
+      avgCostUsd: costs.length
+        ? costs.reduce((a, b) =&gt; a + b, 0) / costs.length</code></pre></section><section class="step workflow-step" id="workflow-step-12"><span class="number">12</span><h3>12. Gate every case independently</h3><p>Require every case to reach the observed 80% threshold. A passing easy case cannot hide a failing case behind an overall average. Thresholds express application policy, not statistical proof.</p><p class="source">Source: src/report.ts · lines 36–45 · selected source; surrounding code omitted</p><pre><code class="language-typescript">const passed = groups.every((g) =&gt; g.passRate &gt;= threshold);
+  return {
+    threshold,
+    groups,
+    passed,
+    totalRuns: runs.length,
+    passedRuns: runs.filter((r) =&gt; r.grade.pass).length,
+    overallPassRate: runs.filter((r) =&gt; r.grade.pass).length / runs.length,
+    pipelineExitCode: passed ? 0 : 1,
+    interpretation:</code></pre></section><section class="step workflow-step" id="workflow-step-13"><span class="number">13</span><h3>13. Observe the real worker exit</h3><p>The parent observes the actual operating-system process close event and compares the exit code with the report. The UI shows both native outcomes and the case-level gate decision.</p><p class="source">Source: src/agent.ts · lines 80–85 · selected source; surrounding code omitted</p><pre><code class="language-typescript">child.once(&quot;close&quot;, (exitCode, signal) =&gt; resolve({ exitCode, signal }));
+  });
+  controller.signal.removeEventListener(&quot;abort&quot;, cancel);
+  const evidence = JSON.parse(
+    redact(
+      JSON.stringify({</code></pre></section><footer>CLAUDE AGENT SDK · LESSON 56 · TEST · MEASURE · COMPARE<br>TypeScript · local runtime · API key stays on the server</footer></main><script src="/navigation.js"></script><script src="/prism.js"></script><script src="/prism-markup.min.js"></script><script src="/prism-sql.min.js"></script><script src="/prism-diff.min.js"></script><script src="/prism-yaml.min.js"></script><script src="/prism-markdown.min.js"></script><script src="/prism-python.min.js"></script><script src="/code-highlighting.js"></script><script src="/marked.umd.js"></script><script src="/purify.min.js"></script></body></html>

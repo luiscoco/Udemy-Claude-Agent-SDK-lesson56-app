@@ -1,0 +1,8 @@
+{
+  "project": "EVAL56",
+  "items": [
+    "unit",
+    "integration",
+    "eval"
+  ]
+}

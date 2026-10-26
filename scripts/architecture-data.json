@@ -1,0 +1,273 @@
+{
+  "lanes": [
+    "Student UI",
+    "Eval harness",
+    "Agent SDK",
+    "Fixture copy",
+    "Outcome grader"
+  ],
+  "arrows": [
+    [
+      0,
+      1,
+      "1. Choose a bounded experiment"
+    ],
+    [
+      1,
+      1,
+      "2. Declare cases and expected outcomes"
+    ],
+    [
+      1,
+      1,
+      "3. Plan independent repetitions"
+    ],
+    [
+      1,
+      3,
+      "4. Copy a fresh versioned fixture"
+    ],
+    [
+      1,
+      2,
+      "5. Configure the real SDK evaluation"
+    ],
+    [
+      2,
+      3,
+      "6. Constrain reads and exact edits"
+    ],
+    [
+      2,
+      1,
+      "7. Collect actual native results"
+    ],
+    [
+      1,
+      4,
+      "8. Run independent trusted tests"
+    ],
+    [
+      1,
+      4,
+      "9. Grade output facts, not prose"
+    ],
+    [
+      1,
+      1,
+      "10. Retain each completed run"
+    ],
+    [
+      1,
+      4,
+      "11. Aggregate rates, cost and turns"
+    ],
+    [
+      4,
+      1,
+      "12. Gate every case independently"
+    ],
+    [
+      1,
+      0,
+      "13. Observe the real worker exit"
+    ]
+  ],
+  "steps": [
+    {
+      "number": 1,
+      "title": "Choose a bounded experiment",
+      "source": "src/protocol.ts",
+      "code": "if (\n    !value ||\n    Object.keys(value).some((k) => k !== \"mode\") ||\n    !MODES.includes(value.mode)\n  )\n    throw new Error(\"Choose a listed evaluation experiment.\");\n  return { mode: value.mode };",
+      "language": "typescript",
+      "explanation": "Validate a fixed mode. Browser input cannot supply shell commands, filesystem paths, prompts or unlimited repetition counts.",
+      "firstLine": 16,
+      "lastLine": 22,
+      "anchors": [
+        "if ("
+      ],
+      "sourceSHA256": "f0dc7a160b09b5922e1d7931ae840d45cad03a13df5d2b5b56ee17e9523a8370",
+      "narration": "Step 1. Validate a fixed mode. Browser input cannot supply shell commands, filesystem paths, prompts or unlimited repetition counts. This source excerpt shows the corresponding application statement."
+    },
+    {
+      "number": 2,
+      "title": "Declare cases and expected outcomes",
+      "source": "src/cases.ts",
+      "code": "export const CASES: Record<\n  CaseId,\n  {\n    prompt: string;\n    expectedCount?: number;\n    grade: \"wiring\" | \"json\" | \"tests\";\n    edit: boolean;\n  }\n> = {",
+      "language": "typescript",
+      "explanation": "A case owns its prompt, grading kind, expected values and edit policy. Wrongexpected is a labelled negative control; its intentionally bad expectation is not a model hallucination.",
+      "firstLine": 13,
+      "lastLine": 21,
+      "anchors": [
+        "export const CASES: Record<"
+      ],
+      "sourceSHA256": "cacee5372c510915fe18534c77b71da830b23503d643055f9a79f1d93ae5b54b",
+      "narration": "Step 2. A case owns its prompt, grading kind, expected values and edit policy. Wrongexpected is a labelled negative control; its intentionally bad expectation is not a model hallucination. This source excerpt shows the corresponding application statement."
+    },
+    {
+      "number": 3,
+      "title": "Plan independent repetitions",
+      "source": "src/cases.ts",
+      "code": "export function plan(mode: Mode): CaseId[] {\n  if (mode === \"repeated\") return [\"structured\", \"structured\", \"structured\"];\n  if (mode === \"suite\") return [\"integration\", \"structured\", \"fix\"];\n  if (mode === \"gate\") return [\"integration\", \"unchanged\"];\n  return [mode];\n}",
+      "language": "typescript",
+      "explanation": "Repeated runs the same JSON case three times. Suite covers three different cases; Gate deliberately includes a failing outcome. One observed success is not a reliability claim.",
+      "firstLine": 61,
+      "lastLine": 68,
+      "anchors": [
+        "export function plan(mode: Mode): CaseId[] {"
+      ],
+      "sourceSHA256": "cacee5372c510915fe18534c77b71da830b23503d643055f9a79f1d93ae5b54b",
+      "narration": "Step 3. Repeated runs the same JSON case three times. Suite covers three different cases; Gate deliberately includes a failing outcome. One observed success is not a reliability claim. This source excerpt shows the corresponding application statement."
+    },
+    {
+      "number": 4,
+      "title": "Copy a fresh versioned fixture",
+      "source": "src/workspace.ts",
+      "code": "await cp(\n    fileURLToPath(new URL(\"../fixtures/buggy-utils/\", import.meta.url)),\n    cwd,\n    { recursive: true },\n  );\n  await mkdir(home);\n  await mkdir(config);",
+      "language": "typescript",
+      "explanation": "Copy the trusted fixture for every run and isolate the SDK home and config. Empty settings and temporary paths reduce shared state; they are not operating-system isolation or deterministic inference.",
+      "firstLine": 36,
+      "lastLine": 42,
+      "anchors": [
+        "await cp("
+      ],
+      "sourceSHA256": "16d62bc462d77b143ebf8537aa8f3adabb4e2f8e741d54aa4bef0f917ba64f2f",
+      "narration": "Step 4. Copy the trusted fixture for every run and isolate the SDK home and config. Empty settings and temporary paths reduce shared state; they are not operating-system isolation or deterministic inference. This source excerpt shows the corresponding application statement."
+    },
+    {
+      "number": 5,
+      "title": "Configure the real SDK evaluation",
+      "source": "src/runner.ts",
+      "code": "const options: Options = {\n    cwd: w.cwd,\n    model,\n    env: privateEnv(w),\n    settingSources: [],\n    plugins: [],\n    skills: [],\n    mcpServers: {},\n    strictMcpConfig: true,\n    persistSession: false,",
+      "language": "typescript",
+      "explanation": "Use the selected model, empty setting sources, explicit tools, dontAsk and finite limits. The model is fixed within a suite. Fixture graders execute locally, separately from the model.",
+      "firstLine": 32,
+      "lastLine": 41,
+      "anchors": [
+        "const options: Options = {"
+      ],
+      "sourceSHA256": "50b26948eb19c4706f45e53ca655f3d1599bb300f0e9311715c60ed3fdb7ace3",
+      "narration": "Step 5. Use the selected model, empty setting sources, explicit tools, dontAsk and finite limits. The model is fixed within a suite. Fixture graders execute locally, separately from the model. This source excerpt shows the corresponding application statement."
+    },
+    {
+      "number": 6,
+      "title": "Constrain reads and exact edits",
+      "source": "src/policy.ts",
+      "code": "const base = realpathSync.native(cwd),\n      target = realpathSync.native(resolve(base, input.file_path));\n    const file = relative(base, target).replaceAll(\"\\\\\", \"/\");\n    if (isAbsolute(file) || file.startsWith(\"..\") || !NAMES.includes(file))\n      return false;\n    if (name === \"Read\") return true;\n    if (!edit || file !== \"src/utils.js\") return false;\n    const before = input.old_string,\n      after = input.new_string;\n    return (",
+      "language": "typescript",
+      "explanation": "Resolve real paths before allowing known fixture reads. Fix mode admits only the reviewed average-empty-input change. The agent has no Bash or Write tool.",
+      "firstLine": 14,
+      "lastLine": 23,
+      "anchors": [
+        "const base = realpathSync.native(cwd),"
+      ],
+      "sourceSHA256": "c65422f8ce64c82c749f0eb2cadfca3a781dd79095bbc5695f6f9092a3eb3889",
+      "narration": "Step 6. Resolve real paths before allowing known fixture reads. Fix mode admits only the reviewed average-empty-input change. The agent has no Bash or Write tool. This source excerpt shows the corresponding application statement."
+    },
+    {
+      "number": 7,
+      "title": "Collect actual native results",
+      "source": "src/runner.ts",
+      "code": "const run = query({ prompt: c.prompt, options });\n  try {\n    for await (const m of run) {\n      if (m.type === \"assistant\")\n        for (const block of m.message.content) {\n          if (block.type === \"tool_use\") {\n            const tool = { name: block.name, id: block.id, input: block.input };\n            tools.push(tool);\n            observe(\"native-tool\", tool);\n          }",
+      "language": "typescript",
+      "explanation": "Consume the actual SDK stream and preserve its terminal result, requested tools and formatted text. A limit result remains a failure, even if a partial answer exists.",
+      "firstLine": 104,
+      "lastLine": 113,
+      "anchors": [
+        "const run = query({ prompt: c.prompt, options });"
+      ],
+      "sourceSHA256": "50b26948eb19c4706f45e53ca655f3d1599bb300f0e9311715c60ed3fdb7ace3",
+      "narration": "Step 7. Consume the actual SDK stream and preserve its terminal result, requested tools and formatted text. A limit result remains a failure, even if a partial answer exists. This source excerpt shows the corresponding application statement."
+    },
+    {
+      "number": 8,
+      "title": "Run independent trusted tests",
+      "source": "src/runner.ts",
+      "code": "if (c.grade === \"tests\" && fixturesValid) {\n      const env = privateEnv(w);\n      delete env.ANTHROPIC_API_KEY;\n      tests = await runProcess(\n        process.execPath,\n        [\"--test\", \"tests/utils.test.mjs\"],\n        { cwd: w.cwd, env, signal: controller.signal },\n      );\n      observe(\"host-verification\", {\n        caseId: id,",
+      "language": "typescript",
+      "explanation": "Verify fixture contents first, remove the API key from the host test environment, then execute actual Node tests. Unchanged preserves the bug and must fail this outcome check.",
+      "firstLine": 133,
+      "lastLine": 142,
+      "anchors": [
+        "if (c.grade === \"tests\" && fixturesValid) {"
+      ],
+      "sourceSHA256": "50b26948eb19c4706f45e53ca655f3d1599bb300f0e9311715c60ed3fdb7ace3",
+      "narration": "Step 8. Verify fixture contents first, remove the API key from the host test environment, then execute actual Node tests. Unchanged preserves the bug and must fail this outcome check. This source excerpt shows the corresponding application statement."
+    },
+    {
+      "number": 9,
+      "title": "Grade output facts, not prose",
+      "source": "src/grader.ts",
+      "code": "const parsed = Answer.safeParse(e.structured);\n    if (!parsed.success)\n      return { pass: false, why: \"Structured output missing or shape invalid\" };\n    const pass =\n      parsed.data.project === \"EVAL56\" && parsed.data.count === c.expectedCount;\n    return {\n      pass,\n      why: `Expected project EVAL56 and count ${c.expectedCount}; received ${parsed.data.project} and ${parsed.data.count}`,\n    };",
+      "language": "typescript",
+      "explanation": "Parse the native structured_output with Zod, then compare project and count to the case expectation. Valid JSON shape is separate from factual correctness. Never grade by exact answer wording.",
+      "firstLine": 27,
+      "lastLine": 35,
+      "anchors": [
+        "const parsed = Answer.safeParse(e.structured);"
+      ],
+      "sourceSHA256": "b6c98a0189fc46609c586c7657e232926da77b0b157eb811d1fa3cc3e6733f1b",
+      "narration": "Step 9. Parse the native structured_output with Zod, then compare project and count to the case expectation. Valid JSON shape is separate from factual correctness. Never grade by exact answer wording. This source excerpt shows the corresponding application statement."
+    },
+    {
+      "number": 10,
+      "title": "Retain each completed run",
+      "source": "src/job.ts",
+      "code": "const run = await runCase(caseId, emit, controller);\n    runs.push(run);\n    await appendFile(\n      join(directory, \"runs.jsonl\"),\n      redact(JSON.stringify(run)) + \"\\n\",\n      \"utf8\",\n    );\n  }",
+      "language": "typescript",
+      "explanation": "Append the actual graded record to JSONL immediately. Reports retain model, SDK, fixture and prompt provenance. Partial suites cannot pass the final gate.",
+      "firstLine": 25,
+      "lastLine": 32,
+      "anchors": [
+        "const run = await runCase(caseId, emit, controller);"
+      ],
+      "sourceSHA256": "95ce09af1e24457b0d2504d34ed78042a6a66aa26b5aa748ad519f944e519df4",
+      "narration": "Step 10. Append the actual graded record to JSONL immediately. Reports retain model, SDK, fixture and prompt provenance. Partial suites cannot pass the final gate. This source excerpt shows the corresponding application statement."
+    },
+    {
+      "number": 11,
+      "title": "Aggregate rates, cost and turns",
+      "source": "src/report.ts",
+      "code": "const costs = measured(\"total_cost_usd\"),\n      turns = measured(\"num_turns\");\n    return {\n      caseId: id,\n      runs: n,\n      passed,\n      passRate: p,\n      wilson95: [Math.max(0, center - spread), Math.min(1, center + spread)],\n      avgCostUsd: costs.length\n        ? costs.reduce((a, b) => a + b, 0) / costs.length",
+      "language": "typescript",
+      "explanation": "Compute measured averages from native result fields and retain measurement coverage. Missing metrics remain unknown. Wilson intervals show the uncertainty of tiny repeated samples.",
+      "firstLine": 17,
+      "lastLine": 26,
+      "anchors": [
+        "const costs = measured(\"total_cost_usd\"),"
+      ],
+      "sourceSHA256": "2adf783381975dca9a9d7a9eba7476e577a5c79c090b8d292d3561b53e06051a",
+      "narration": "Step 11. Compute measured averages from native result fields and retain measurement coverage. Missing metrics remain unknown. Wilson intervals show the uncertainty of tiny repeated samples. This source excerpt shows the corresponding application statement."
+    },
+    {
+      "number": 12,
+      "title": "Gate every case independently",
+      "source": "src/report.ts",
+      "code": "const passed = groups.every((g) => g.passRate >= threshold);\n  return {\n    threshold,\n    groups,\n    passed,\n    totalRuns: runs.length,\n    passedRuns: runs.filter((r) => r.grade.pass).length,\n    overallPassRate: runs.filter((r) => r.grade.pass).length / runs.length,\n    pipelineExitCode: passed ? 0 : 1,\n    interpretation:",
+      "language": "typescript",
+      "explanation": "Require every case to reach the observed 80% threshold. A passing easy case cannot hide a failing case behind an overall average. Thresholds express application policy, not statistical proof.",
+      "firstLine": 36,
+      "lastLine": 45,
+      "anchors": [
+        "const passed = groups.every((g) => g.passRate >= threshold);"
+      ],
+      "sourceSHA256": "2adf783381975dca9a9d7a9eba7476e577a5c79c090b8d292d3561b53e06051a",
+      "narration": "Step 12. Require every case to reach the observed 80% threshold. A passing easy case cannot hide a failing case behind an overall average. Thresholds express application policy, not statistical proof. This source excerpt shows the corresponding application statement."
+    },
+    {
+      "number": 13,
+      "title": "Observe the real worker exit",
+      "source": "src/agent.ts",
+      "code": "child.once(\"close\", (exitCode, signal) => resolve({ exitCode, signal }));\n  });\n  controller.signal.removeEventListener(\"abort\", cancel);\n  const evidence = JSON.parse(\n    redact(\n      JSON.stringify({",
+      "language": "typescript",
+      "explanation": "The parent observes the actual operating-system process close event and compares the exit code with the report. The UI shows both native outcomes and the case-level gate decision.",
+      "firstLine": 80,
+      "lastLine": 85,
+      "anchors": [
+        "child.once(\"close\", (exitCode, signal) => resolve({ exitCode, signal }));"
+      ],
+      "sourceSHA256": "fff38d153578bc4d06ac5a8320dccd19c2955a8784d144e5b79aceee7500f004",
+      "narration": "Step 13. The parent observes the actual operating-system process close event and compares the exit code with the report. The UI shows both native outcomes and the case-level gate decision. This source excerpt shows the corresponding application statement."
+    }
+  ]
+}
